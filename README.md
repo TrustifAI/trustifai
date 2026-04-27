@@ -5,7 +5,7 @@ TrustifAI is a Python-based framework designed to evaluate the trustworthiness o
 
 It also includes **visualizations** to help showcase why a model output was deemed unreliable.
 
-![Build Status](https://github.com/aaryanverma/trustifai/actions/workflows/run-tests.yml/badge.svg)
+![Build Status](https://github.com/TrustifAI/trustifai/actions/workflows/run-tests.yml/badge.svg)
 [![PyPI version](https://badge.fury.io/py/trustifai.svg?icon=si%3Apython)](https://badge.fury.io/py/trustifai)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/trustifai?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/trustifai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?color=green)](https://opensource.org/licenses/MIT)
