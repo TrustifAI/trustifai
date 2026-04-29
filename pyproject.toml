@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trustifai"
-version = "0.1.7"
+version = "0.1.8"
 dynamic = ["dependencies"]
 description = "Trustifai: A Comprehensive Framework for AI Trustworthiness"
 readme = "README.md"
@@ -27,7 +27,7 @@ trace = ["mlflow==3.8.1"]
 test = ["pytest==8.3.4", "langchain-core==1.2.6", "llama-index==0.14.13"]
 
 [project.urls]
-Homepage = "https://github.com/Aaryanverma/trustifai"
+Homepage = "https://github.com/Trustifai/trustifai"
 
 [tool.setuptools]
 include-package-data = true
