@@ -23,8 +23,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",]
 
 [project.optional-dependencies]
-trace = ["mlflow==3.8.1"]
-test = ["pytest==8.3.4", "langchain-core==1.2.6", "llama-index==0.14.13"]
+trace = ["mlflow==3.11.1"]
+test = ["pytest==9.0.3", "langchain-core==1.2.28", "llama-index==0.14.13"]
 
 [project.urls]
 Homepage = "https://github.com/Trustifai/trustifai"
