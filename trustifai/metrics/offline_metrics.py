@@ -146,7 +146,7 @@ class EpistemicConsistencyMetric(BaseMetric):
         std = float(np.std(similarities)) if len(similarities) > 1 else 0.0
         ci_95 = 1.96 * (std / np.sqrt(self.config.k_samples)) 
 
-        return self._format_result(score, std, ci_95, cost)
+        return self._format_result(score, samples, std, ci_95, cost)
 
     async def _generate_samples_async(self, context: MetricContext):
         temperature_options = [0.7, 0.8, 0.9, 1.0]
@@ -176,11 +176,11 @@ class EpistemicConsistencyMetric(BaseMetric):
                 similarities.append(sim)
         return similarities
 
-    def _format_result(self, score: float, std: float, ci_95: float, cost: float) -> MetricResult:
+    def _format_result(self, score: float, samples: List[str], std: float, ci_95: float, cost: float) -> MetricResult:
         label, explanation = self.threshold_evaluator.evaluate_consistency(score)
         return MetricResult(
             score=score, label=label,
-            details={"explanation": explanation, "std_dev": round(std, 2), "uncertainty": round(ci_95, 2)},
+            details={"explanation": explanation, "generated_responses": samples, "std_dev": round(std, 2), "uncertainty": round(ci_95, 2)},
             execution_metadata={"total_cost_usd": cost}
         )
 
@@ -287,7 +287,6 @@ class LLMBasedEvidenceStrategy(BaseMetric):
             self.service.extract_document(doc) for doc in context.documents
         ]
         
-        # 1. Pass the FULL answer and extracted documents to a single LLM call
         result = self._verify_with_llm(context.query, context.answer, extracted_docs)
 
         score = (
@@ -301,11 +300,12 @@ class LLMBasedEvidenceStrategy(BaseMetric):
             score=score,
             label=label,
             details={
-                "explanation": explanation,
+                "explanation": explanation if result.failed_count == 0 else "",
                 "total_sentences": result.total_count,
                 "supported_sentences": result.supported_count,
                 "unsupported_sentences": result.unsupported_spans,
                 "failed_checks": result.failed_count,
+                "failed_reason": result.fail_reason,
             },
             execution_metadata={"total_cost_usd": result.cost}
         )
