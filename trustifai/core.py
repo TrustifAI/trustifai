@@ -269,7 +269,7 @@ class Trustifai:
             score += w * result["score"]
             
             meta = result.get("execution_metadata", {})
-            total_cost += meta.get("cost", 0.0)
+            total_cost += float(meta.get("total_cost_usd", 0.0))
 
         thresholds = self.config.thresholds
         if score >= thresholds.RELIABLE_TRUST: decision = "RELIABLE"
