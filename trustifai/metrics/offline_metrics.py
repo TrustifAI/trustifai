@@ -139,6 +139,8 @@ class EpistemicConsistencyMetric(BaseMetric):
             return self._create_stable_result()
 
         samples, cost = await self._generate_samples_async(context)
+        if not samples:
+            return self._create_unreliable_result(cost)
         similarities = self._calculate_similarities(samples, context)
 
         if not similarities:
@@ -161,7 +163,7 @@ class EpistemicConsistencyMetric(BaseMetric):
                 doc_texts.append(extracted if extracted else str(doc))
 
         prompt = context.query
-        if doc_texts:
+        if doc_texts and len(doc_texts) > 0:
             prompt += "\n\n---DOCUMENTS:---\n\n" + "\n".join(doc_texts)
 
         tasks = [self.service.llm_call_async(prompt=prompt, temperature=float(temp)) for temp in temps]
@@ -378,12 +380,19 @@ class LLMBasedEvidenceStrategy(BaseMetric):
         return f"""Evaluate if the provided ANSWER is factually supported by the DOCUMENTS.
         Think thoroughly and reason about the query and evidence in the documents before answering.
 
-        QUERY: {query}
-        DOCUMENTS: {docs}
+        **QUERY:**
+        {query}
+        =============
+
+        **DOCUMENTS:**
+        {docs}
+        =============
         
-        FULL ANSWER: {full_answer}
+        **FULL ANSWER:**
+        {full_answer}
+        =============
         
-        INSTRUCTIONS:
+        **INSTRUCTIONS:**
         1. Understand the QUERY to grasp the intent.
         2. Read the FULL ANSWER to understand the context.
         3. Break the ANSWER down sentence by sentence.
