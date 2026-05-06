@@ -154,7 +154,9 @@ class EpistemicConsistencyMetric(BaseMetric):
         temperature_options = [0.7, 0.8, 0.9, 1.0]
         temps = np.random.choice(temperature_options, self.config.k_samples)
 
-        tasks = [self.service.llm_call_async(prompt=context.query, temperature=float(temp)) for temp in temps]
+        prompt = context.query+"\n\n---DOCUMENTS:---\n\n"+"\n".join(context.documents) if context.documents else context.query
+
+        tasks = [self.service.llm_call_async(prompt=prompt, temperature=float(temp)) for temp in temps]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
         
         valid_responses = [r["response"] for r in responses if isinstance(r, dict) and r.get("response")]
