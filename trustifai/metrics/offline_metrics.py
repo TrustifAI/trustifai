@@ -121,6 +121,8 @@ class EpistemicConsistencyMetric(BaseMetric):
         thread.join()
 
         samples, cost = result_container[0] if result_container else ([], 0.0)
+        if not samples:
+            return self._create_unreliable_result(cost)
         similarities = self._calculate_similarities(samples, context)
         if not similarities:
             return self._create_unreliable_result(cost)
@@ -129,7 +131,7 @@ class EpistemicConsistencyMetric(BaseMetric):
         std = float(np.std(similarities)) if len(similarities) > 1 else 0.0
         ci_95 = 1.96 * (std / np.sqrt(self.config.k_samples)) 
 
-        return self._format_result(score, std, ci_95, cost)
+        return self._format_result(score, samples, std, ci_95, cost)
 
     async def a_calculate(self, context: MetricContext) -> MetricResult:
         """Native async pipeline for non-blocking server applications"""
