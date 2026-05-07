@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trustifai"
-version = "0.1.8"
+version = "0.1.9"
 dynamic = ["dependencies"]
-description = "Trustifai: A Comprehensive Framework for AI Trustworthiness"
+description = "TrustifAI: A Comprehensive Framework for AI Trustworthiness"
 readme = "README.md"
 authors = [
     { name = "Aaryan Verma" }
