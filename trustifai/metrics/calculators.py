@@ -82,7 +82,7 @@ class ThresholdEvaluator:
             return TrustLevel.HIGH.value, "Multiple independent sources used for answer."
         elif score >= self.thresholds.MODERATE_DIVERSITY:
             return TrustLevel.MODERATE.value, "Limited corroboration from multiple sources."
-        return TrustLevel.LOW.value, "Single source used for answer."
+        return TrustLevel.LOW.value, "Single/limited source(s) used for answer."
     
     def evaluate_confidence(self, score: float) -> Tuple[str, str]:
         if score >= self.thresholds.HIGH_CONFIDENCE:

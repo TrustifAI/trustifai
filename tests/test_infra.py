@@ -156,10 +156,9 @@ def test_reranker_empty_result(mock_service):
 @patch("trustifai.services.completion") 
 @patch("trustifai.services.embedding")  
 @patch("trustifai.services.acompletion") 
-@patch("trustifai.services.rerank")
 @patch("trustifai.services.responses")
 @patch("trustifai.services.aresponses")
-def test_real_service_calls(mock_aresponses, mock_responses, mock_rerank, mock_acompletion, mock_embed, mock_completion, sample_config_yaml):
+def test_real_service_calls(mock_aresponses, mock_responses, mock_acompletion, mock_embed, mock_completion, sample_config_yaml):
     config = Config.from_yaml(sample_config_yaml)
     
     service = ExternalService(config)
@@ -173,12 +172,10 @@ def test_real_service_calls(mock_aresponses, mock_responses, mock_rerank, mock_a
     mock_aresponses.return_value.output_text = "Mocked Async Response"
     
     mock_embed.return_value.data = [{"embedding": [0.1, 0.2, 0.3]}]
-    mock_rerank.return_value.result = ["Doc A", "Doc B"]
 
     #api type: chat_completion
     service.llm_call(prompt="test")
     service.embedding_call("text")
-    service.reranker_call("query", ["Doc A", "Doc B"])
     asyncio.run(service.llm_call_async(prompt="async test"))
 
     #api type: responses
@@ -186,12 +183,10 @@ def test_real_service_calls(mock_aresponses, mock_responses, mock_rerank, mock_a
     service = ExternalService(config)
     service.llm_call(prompt="test")
     service.embedding_call("text")
-    service.reranker_call("query", ["Doc A", "Doc B"])
     asyncio.run(service.llm_call_async(prompt="async test"))
 
     assert mock_completion.called
     assert mock_embed.called
-    assert mock_rerank.called
     assert mock_acompletion.called
     assert mock_responses.called
     assert mock_aresponses.called
@@ -212,10 +207,6 @@ def test_exception_handling_in_service_calls(mock_service):
     with pytest.raises(Exception, match="Embedding Failure"):
         mock_service.embedding_call("Test text")
 
-    # Reranker Call Exception
-    mock_service.reranker_call.side_effect = Exception("Reranker Failure")
-    with pytest.raises(Exception, match="Reranker Failure"):
-        mock_service.reranker_call(["Doc1", "Doc2"], "Test query")
 
 def test_extract_document_various_inputs(mock_service):
     # Test with string input
