@@ -168,8 +168,8 @@ class ExternalService:
         """Update LLM parameters in config at runtime"""
         cfg = self.config.llm
         model = f"{cfg.type}/{cfg.params.get('model_name')}"
-        base_url = cfg.params.get("base_url") or os.environ.get("BASE_URL")
-        api_base = cfg.params.get("api_base") or os.environ.get("API_BASE")
+        base_url = cfg.params.get("base_url") or os.environ.get("LLM_BASE_URL")
+        api_base = cfg.params.get("api_base") or os.environ.get("LLM_API_BASE")
         azure_ad_token = cfg.params.get("azure_ad_token") or os.environ.get(
             "AZURE_AD_TOKEN"
         )
@@ -197,7 +197,8 @@ class ExternalService:
         api_base = (
             cfg.params.get("api_base")
             or cfg.params.get("base_url")
-            or os.environ.get("API_BASE")
+            or os.environ.get("EMBEDDING_API_BASE")
+            or os.environ.get("EMBEDDING_BASE_URL")
         )
         input_type = cfg.params.get("input_type", None)
         azure_ad_token = cfg.params.get("azure_ad_token") or os.environ.get(
