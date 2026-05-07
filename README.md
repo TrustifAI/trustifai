@@ -12,7 +12,7 @@ It also includes **visualizations** to help showcase why a model output was deem
 
 ## 📊 Key Metrics
 
-**TrustifAI** evaluates trustworthiness using four orthogonal vectors. The final *Trust Score* is a weighted aggregation of these components.
+**TrustifAI** evaluates trustworthiness using four orthogonal vectors or trust signals. The final *Trust Score* is a weighted aggregation of these components.
 
 ### Offline Metrics (For already generated RAG response)
 
@@ -24,6 +24,8 @@ It also includes **visualizations** to help showcase why a model output was deem
 | **Source Diversity** | Normalized count of distinct source_id references contributing to the answer, adjusted using an exponential decay penalty. | Measures reliance on a single source while rewarding synthesis across multiple independent sources, without excessively penalizing cases where a single document is sufficient.
 
 ### Online Metrics (For Real-time response generation)
+
+`Applicable only for LLMs which supports logprobs. Might not be a good metric in case LLM is not calibrated enough.`
 
 | Metric | Definition | Purpose |
 |------|------------|---------|
@@ -47,7 +49,7 @@ OR
 
 ```
 # Clone the repository
-git clone https://github.com/Aaryanverma/trustifai.git
+git clone https://github.com/Trustifai/trustifai.git
 cd trustifai
 
 # Install dependencies
@@ -65,7 +67,7 @@ Create a .env file or export your API keys. TrustifAI uses LiteLLM, so it suppor
 
 ```python
 from trustifai import Trustifai, MetricContext
-from langchain_core.documents import Document
+from langchain_core.documents import Document #langchain is not required, used here for demo only.
 
 # 1. Define your RAG Context
 context = MetricContext(
@@ -130,10 +132,12 @@ llm:
 # 2. Thresholds (Strictness)
 metrics:
   - type: "evidence_coverage"
+    enabled: true #any metric can be disabled (if not suitable for your use-case)
     params:
       STRONG_GROUNDING: 0.85 # Threshold for "Trusted" label
       PARTIAL_GROUNDING: 0.60
   - type: "consistency"
+    enabled: true
     params:
       STABLE_CONSISTENCY: 0.90 # Requires 0.9 cosine sim to be "Stable"
 
@@ -141,13 +145,13 @@ metrics:
 # Adjust these based on your business priority.
 score_weights:
   - type: "evidence_coverage"
-    params: { weight: 0.45 } # Highest priority on factual accuracy
+    params: { weight: 0.40 } # Highest priority on factual accuracy
   - type: "semantic_drift"
     params: { weight: 0.30 }
   - type: "consistency"
     params: { weight: 0.20 }
   - type: "source_diversity"
-    params: { weight: 0.05 }
+    params: { weight: 0.10 }
 ```
 
 
