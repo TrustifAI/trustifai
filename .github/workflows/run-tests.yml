@@ -3,10 +3,12 @@ name: Run Tests
 on:
   push:
     branches:
-      - '**'
+      - main
+      - master
   pull_request:
     branches:
-      - '**'
+      - main
+      - master
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
