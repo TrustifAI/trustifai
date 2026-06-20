@@ -102,7 +102,8 @@ class GraphVisualizer:
             if node.node_type == "decision": positions[node.node_id] = (0, 400)
             elif node.node_type == "aggregation": positions[node.node_id] = (0, 0)
             elif node.node_type == "metric":
-                angle = 2 * math.pi * metric_nodes.index(node) / len(metric_nodes)
+                for i, node in enumerate(metric_nodes):
+                    angle = 2 * math.pi * i / len(metric_nodes)
                 positions[node.node_id] = (int(radius * math.cos(angle)), int(radius * math.sin(angle)))
         return positions
 

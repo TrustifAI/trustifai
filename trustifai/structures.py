@@ -29,9 +29,9 @@ class TrustLevel(Enum):
 # --- Pydantic Models (Validation) ---
 
 class SpanItem(BaseModel):
-    index: int = Field(description="Index of the span")
-    supported: bool = Field(description="True or False")
-    answer: str = Field(description="answer span")
+    index: int = Field(description="Index of the answer span")
+    reason: str = Field(description="brief reason for support/unsupport for span")
+    supported: bool = Field(description="true or false")
 
 class SpanSchema(BaseModel):
     spans: List[SpanItem]
@@ -67,6 +67,7 @@ class MetricResult:
 
 @dataclass
 class SpanCheckResult:
+    reasoning: str
     supported_count: int
     unsupported_spans: List[str]
     failed_count: int

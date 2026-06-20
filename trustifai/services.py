@@ -132,7 +132,7 @@ class ExternalService:
             if len(document) == 0:
                 return ""
             elif len(document) == 1:
-                document = document[0]
+                return ExternalService.extract_document(document[0])
             else:
                 return "\n".join(
                     [ExternalService.extract_document(doc) for doc in document]

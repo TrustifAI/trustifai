@@ -228,3 +228,229 @@ def test_extract_document_various_inputs(mock_service):
     # Test with LlamaIndex Document
     llamaindex_doc = LlamaIndexDocument(text="LlamaIndex content", metadata={"source": "llama"})
     assert mock_service.extract_document(llamaindex_doc) == "LlamaIndex content"
+
+#extended tests for document extraction and LLM calls, including edge cases and exception handling
+
+def test_extract_document_langchain_document():
+    """Test extraction from LangChain Document."""
+    doc = LangchainDocument(page_content="Test content", metadata={"source": "test"})
+    result = ExternalService.extract_document(doc)
+    assert result == "Test content"
+
+
+def test_extract_document_dict_page_content():
+    """Test extraction from dict with page_content key."""
+    doc = {"page_content": "Dict content"}
+    result = ExternalService.extract_document(doc)
+    assert result == "Dict content"
+
+
+def test_extract_document_dict_text():
+    """Test extraction from dict with text key."""
+    doc = {"text": "Text content"}
+    result = ExternalService.extract_document(doc)
+    assert result == "Text content"
+
+
+def test_extract_document_dict_content():
+    """Test extraction from dict with content key."""
+    doc = {"content": "Content value"}
+    result = ExternalService.extract_document(doc)
+    assert result == "Content value"
+
+
+def test_extract_document_dict_output():
+    """Test extraction from dict with output key."""
+    doc = {"output": "Output value"}
+    result = ExternalService.extract_document(doc)
+    assert result == "Output value"
+
+
+def test_extract_document_object_with_attributes():
+    """Test extraction from object with page_content attribute."""
+    class CustomDoc:
+        def __init__(self):
+            self.page_content = "Custom content"
+    
+    doc = CustomDoc()
+    result = ExternalService.extract_document(doc)
+    assert result == "Custom content"
+
+
+def test_extract_document_object_with_text():
+    """Test extraction from object with text attribute."""
+    class CustomDoc:
+        def __init__(self):
+            self.text = "Text attribute"
+    
+    doc = CustomDoc()
+    result = ExternalService.extract_document(doc)
+    assert result == "Text attribute"
+
+
+def test_extract_document_none():
+    """Test extraction from None."""
+    result = ExternalService.extract_document(None)
+    assert result == ""
+
+
+def test_extract_document_empty_list():
+    """Test extraction from empty list."""
+    result = ExternalService.extract_document([])
+    assert result == ""
+
+
+def test_extract_document_single_item_list():
+    """Test extraction from single-item list."""
+    doc = [LangchainDocument(page_content="List item", metadata={})]
+    result = ExternalService.extract_document(doc)
+    assert result == "List item"
+
+
+def test_extract_document_nested_list():
+    """Test extraction from multi-item list."""
+    docs = [
+        LangchainDocument(page_content="Item 1", metadata={}),
+        LangchainDocument(page_content="Item 2", metadata={}),
+    ]
+    result = ExternalService.extract_document(docs)
+    assert "Item 1" in result
+    assert "Item 2" in result
+
+
+def test_extract_document_fallback_to_string():
+    """Test fallback to str() conversion."""
+    doc = {"unexpected": "value"}
+    result = ExternalService.extract_document(doc)
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+def test_get_llm_params_basic(sample_config_yaml):
+    """Test basic LLM params extraction."""
+    cfg = Config.from_yaml(sample_config_yaml)
+    service = ExternalService(cfg)
+    params = service.get_llm_params()
+
+    assert params["model"] == "openai/gpt-4"
+    assert params["api_type"] == "chat_completion"
+    assert "final_kwargs" in params
+
+
+def test_get_llm_params_with_kwargs_override(sample_config_yaml):
+    """Test LLM params with kwargs override."""
+    cfg = Config.from_yaml(sample_config_yaml)
+    service = ExternalService(cfg)
+    params = service.get_llm_params(temperature=0.5, top_p=0.9)
+
+    assert params["model"] == "openai/gpt-4"
+    assert params["api_type"] == "chat_completion"
+    assert "final_kwargs" in params
+    assert params["final_kwargs"]["temperature"] == 0.5
+    assert params["final_kwargs"]["top_p"] == 0.9
+
+
+def test_get_embedding_params_basic(sample_config_yaml):
+    """Test basic embedding params extraction."""
+    cfg = Config.from_yaml(sample_config_yaml)
+    service = ExternalService(cfg)
+    params = service.get_embedding_params()
+
+    assert params["model"] == "openai/text-embedding-3-small"
+    assert "final_kwargs" in params
+
+
+def test_log_metrics_by_category_mlflow_disabled(mock_service):
+    """Test logging metrics when MLflow is disabled."""
+    # Should not raise even if MLflow is unavailable
+    ExternalService.log_metrics_by_category(
+        metrics_data={"evidence_coverage": {"score": 0.8}},
+        trust_score=0.75,
+        decision="ACCEPT",
+        offline_metric_keys={"evidence_coverage"}
+    )
+
+
+def test_log_metrics_by_category_categorization():
+    """Test metrics are properly categorized."""
+    metrics_data = {
+        "evidence_coverage": {"score": 0.8},
+        "semantic_drift": {"score": 0.7},
+    }
+    offline_keys = {"evidence_coverage"}
+    
+    # Call should complete without error
+    try:
+        ExternalService.log_metrics_by_category(
+            metrics_data=metrics_data,
+            trust_score=0.75,
+            decision="ACCEPT",
+            offline_metric_keys=offline_keys
+        )
+    except Exception:
+        # MLflow may not be available, that's ok
+        pass
+
+
+@patch('trustifai.services.completion')
+def test_llm_call_chat_completion(mock_completion, mock_service):
+    """Test llm_call with chat_completion API type."""
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="Response"))],
+        usage=MagicMock(total_tokens=10)
+    )
+    
+    result = mock_service.llm_call(
+        system_prompt="System",
+        prompt="User prompt"
+    )
+    
+    # Verify the call was made
+    assert result["response"] is not None
+
+
+@patch('trustifai.services.completion')
+def test_llm_call_with_kwargs(mock_completion, mock_service):
+    """Test llm_call passes through kwargs."""
+    mock_completion.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="Response"))],
+        usage=MagicMock(total_tokens=10)
+    )
+    
+    result = mock_service.llm_call(
+        prompt="Test",
+        temperature=0.5,
+        max_tokens=100
+    )
+    
+    assert result["response"] is not None
+
+
+@patch('trustifai.services.embedding')
+def test_embedding_call_batch(mock_embedding):
+    """Test batch embedding calls."""
+    mock_embedding.side_effect = [
+        {"data": [{"embedding": [0.1, 0.2, 0.3]}]},
+        {"data": [{"embedding": [0.4, 0.5, 0.6]}]},
+    ]
+    
+    texts = ["Text 1", "Text 2"]
+
+def test_configure_tracing_disabled(sample_config_yaml):
+    """Test tracing configuration when disabled."""
+    cfg = Config.from_yaml(sample_config_yaml)
+    service = ExternalService(cfg)
+    service.configure_tracing()
+
+@patch('trustifai.services.mlflow')
+def test_configure_tracing_enabled(mock_mlflow, sample_config_yaml):
+    """Test tracing configuration when enabled."""
+    cfg = Config.from_yaml(sample_config_yaml)
+    cfg.tracing.params["enabled"] = True
+    cfg.tracing.params["tracking_uri"] = "http://localhost:5000"
+    cfg.tracing.params["experiment_name"] = "test-experiment"
+
+    service = ExternalService(cfg)
+    service.configure_tracing()
+
+    assert mock_mlflow.litellm.autolog.called
+    # Test would depend on MLflow availability

@@ -6,8 +6,9 @@ Online metrics calculated during LLM generation time.
 import numpy as np
 from typing import List, Dict, Any
 from trustifai.metrics.calculators import ThresholdEvaluator
+from trustifai.metrics.base import BaseMetric
 
-class ConfidenceMetric:
+class ConfidenceMetric(BaseMetric):
     """
     Calculates the confidence of the LLM response using log probabilities 
     captured during the generation process.

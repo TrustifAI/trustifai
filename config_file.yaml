@@ -8,13 +8,13 @@ tracing:
     experiment_name: "trustifai_experiment"
 
 llm:
-  type: "openai" #openai, huggingface, gemini, mistral, ollama, azure_ai, nvidia_nim etc. (LiteLLM models)
+  type: "mistral" #openai, huggingface, gemini, mistral, ollama, azure_ai, nvidia_nim etc. (LiteLLM models)
   params:
-    model_name: "gpt-5.5" # specify your model name here
+    model_name: "mistral-small-2506" # specify your model name here
     api_type: "chat_completion" # "chat_completion" (default) or "responses"
   kwargs:
     temperature: 0.01
-    max_tokens: 2048
+    max_tokens: 4096
     top_p: 0.95
     max_retries: 5
     timeout: 300
@@ -26,12 +26,6 @@ embeddings:
   params:
     model_name: "openai/text-embedding-3-small"
   kwargs: {}
-
-reranker:
-  type: "cohere" #cohere, together_ai, azure_ai, fireworks_ai, voyage etc. (LiteLLM reranker models)
-  params:
-    model_name: "rerank-v4.0-fast"
-    kwargs: {}
 
 metrics:
   - type: "evidence_coverage"
