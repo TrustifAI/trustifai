@@ -74,7 +74,7 @@ class ExternalService:
 
     def configure_tracing(self):
         """Initialize tracing if enabled in config"""
-        if not MLFLOW_AVAILABLE:
+        if mlflow is None:
             return
 
         if self.config.tracing.params["enabled"]:
@@ -96,7 +96,7 @@ class ExternalService:
         metrics_data: dict, trust_score: float, decision: str, offline_metric_keys: set
     ):
         """Log metrics to MLflow categorized by type"""
-        if not MLFLOW_AVAILABLE:
+        if mlflow is None:
             return
 
         # Categorize metrics

@@ -41,3 +41,6 @@ exclude = ["benchmarks*", "examples*"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.ipynb", ".ipynb_checkpoints", "*.json", ".csv"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
