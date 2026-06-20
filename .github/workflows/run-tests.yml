@@ -2,9 +2,11 @@ name: Run Tests
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - '**'
   pull_request:
-    branches: [ "main", "master" ]
+    branches:
+      - '**'
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
@@ -20,6 +22,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
