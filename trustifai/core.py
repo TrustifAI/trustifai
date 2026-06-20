@@ -44,6 +44,7 @@ class Trustifai:
         self.threshold_evaluator = ThresholdEvaluator(self.config)
 
         self.metrics = {}
+        self._init_metrics()
 
     @classmethod
     def register_metric(cls, name: str, metric_class: Type[BaseMetric]):
@@ -77,6 +78,13 @@ class Trustifai:
             if not hasattr(context, attr):
                 raise ValueError(f"Context missing required attribute: {attr}")
 
+            value = getattr(context, attr)
+            if attr in {"answer", "query"}:
+                if value is None or (isinstance(value, str) and not value.strip()):
+                    raise ValueError(f"Context missing required value: {attr}")
+            elif value is None or (isinstance(value, (list, tuple)) and len(value) == 0):
+                raise ValueError(f"Context missing required value: {attr}")
+
     def _compute_embeddings(self, context: MetricContext):
         """Compute embeddings if not present"""
         if (
@@ -100,19 +108,11 @@ class Trustifai:
             )
         ):
 
-            context.query_embeddings = self.service.embedding_call(
-                context.query
-            )['embedding']
-            context.answer_embeddings = self.service.embedding_call(
-                context.answer
-            )['embedding']
-            # context.document_embeddings = [
-            #     self.service.embedding_call(self.service.extract_document(doc))
-            #     for doc in context.documents
-            # ]
-            doc_texts = [self.service.extract_document(doc) for doc in context.documents]
-
-            context.document_embeddings = self.service.embedding_call_batch(doc_texts)['embedding']
+            all_texts = [context.query, context.answer] + [self.service.extract_document(doc) for doc in context.documents]
+            results = self.service.embedding_call_batch(all_texts)['embedding']
+            context.query_embeddings = results[0]
+            context.answer_embeddings = results[1]
+            context.document_embeddings = results[2:]
         
         return context
 
@@ -209,6 +209,8 @@ class Trustifai:
         Calculates the overall trust score using active metrics and normalized weights.
         """
 
+        self._validate_context(context)
+
         if not context or (not context.documents): 
             return {
                 "score": 0.0,
@@ -216,10 +218,9 @@ class Trustifai:
                 "details": "No source documents available.",
                 "execution_metadata": {"total_cost_usd": 0.0}
             }
-
-        self._validate_context(context)
         context = self._compute_embeddings(context)
-        self._init_metrics()
+        if not self.metrics:
+            self._init_metrics()
             
         # Calculate all ACTIVE metrics
         metrics_data = {k: m.calculate(context).to_dict() for k, m in self.metrics.items()}
@@ -231,15 +232,16 @@ class Trustifai:
         Calculates the overall trust score asynchronously. 
         Ideal for highly concurrent server deployments.
         """
+        self._validate_context(context)
+
         if not context or (context.documents is None or len(context.documents) == 0): 
             return {
                 "score": 0.0, "label": "Unreliable", "details": "No source documents available.",
                 "execution_metadata": {"total_cost_usd": 0.0}
             }
-
-        self._validate_context(context)
         context = await self._a_compute_embeddings(context)
-        self._init_metrics()
+        if not self.metrics:
+            self._init_metrics()
             
         metrics_data = {}
         tasks = []
@@ -286,21 +288,24 @@ class Trustifai:
                 pass
 
 
+        details_payload = {"metrics": metrics_data}
+        details_payload.update(metrics_data)
+
         return {
             "score": round(score, 2),
             "label": decision,
-            "details": metrics_data,
+            "details": details_payload,
             "execution_metadata": {
                 "total_cost_usd": round(total_cost, 6),
             }
         }
 
     def build_reasoning_graph(
-        self, trust_score: Optional[Dict] = None
+        self, trust_score: Optional[Dict] = None, context: Optional[MetricContext] = None
     ) -> ReasoningGraph:
         trace_id = str(uuid.uuid4())
         if trust_score is None:
-            trust_score = self.get_trust_score()
+            trust_score = self.get_trust_score(context)
 
         score = trust_score["score"]
         decision = trust_score["label"]
@@ -308,7 +313,7 @@ class Trustifai:
         thresholds = self.config.thresholds
 
         nodes = self._build_nodes(trust_score, score, decision, weights, thresholds)
-        edges = self._build_edges(trust_score["details"])
+        edges = self._build_edges(trust_score["details"].get("metrics", trust_score["details"]))
 
         return ReasoningGraph(trace_id, nodes, edges)
 
@@ -316,6 +321,7 @@ class Trustifai:
         self, trust_score: Dict, score: float, decision: str, weights, thresholds
     ) -> list:
         details = trust_score["details"]
+        metric_details = details.get("metrics", details)
 
         # Metric Nodes (only active ones)
         metric_nodes = [
@@ -329,7 +335,7 @@ class Trustifai:
                 label=val["label"],
                 details=val["details"],
             )
-            for key, val in details.items()
+            for key, val in metric_details.items()
         ]
 
         # Aggregation Node

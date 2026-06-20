@@ -15,8 +15,8 @@ class CosineSimCalculator:
         if emb1 is None or emb2 is None:
             raise ValueError("Missing embeddings for similarity computation.")
 
-        emb1 = np.atleast_2d(np.array(emb1))
-        emb2 = np.atleast_2d(np.array(emb2))
+        emb1 = np.atleast_2d(emb1 if isinstance(emb1, np.ndarray) else np.array(emb1))
+        emb2 = np.atleast_2d(emb2 if isinstance(emb2, np.ndarray) else np.array(emb2))
 
         dot_product = np.dot(emb1, emb2.T)
         magnitude_vec1 = norm(emb1, axis=1)

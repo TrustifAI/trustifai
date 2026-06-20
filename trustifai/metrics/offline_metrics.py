@@ -21,11 +21,15 @@ from trustifai.metrics.base import BaseMetric
 import asyncio
 import logging
 import threading
-import nest_asyncio
-
-nest_asyncio.apply()
 
 logger = logging.getLogger(__name__)
+
+if asyncio.get_event_loop().is_running():
+    try:
+        import nest_asyncio
+        nest_asyncio.apply()
+    except ImportError:
+        pass
 
 
 class EvidenceCoverageMetric(BaseMetric):
@@ -384,6 +388,7 @@ class LLMBasedEvidenceStrategy(BaseMetric):
             label=label,
             details={
                 "explanation": explanation if result.failed_count == 0 else "",
+                "reasoning": result.reasoning,
                 "total_sentences": result.total_count,
                 "supported_sentences": result.supported_count,
                 "unsupported_sentences": result.unsupported_spans,
@@ -401,6 +406,7 @@ class LLMBasedEvidenceStrategy(BaseMetric):
         fail_reason = None
         unsupported_spans = []
         total_count = 0
+        reason_text = None
 
         prompt = self._build_prompt(query, full_answer, extracted_docs)
 
@@ -410,11 +416,12 @@ class LLMBasedEvidenceStrategy(BaseMetric):
         except Exception as e:
             logger.exception(f"Error calling LLM: {e}")
             return SpanCheckResult(
-                0, [], failed_checks + 1, f"LLM call failed: {e}", 0, 0.0
+                "", 0, [], failed_checks + 1, f"LLM call failed: {e}", 0, 0.0
             )
 
         if not response or not response.get("response"):
             return SpanCheckResult(
+                "",
                 0,
                 [],
                 failed_checks + 1,
@@ -431,20 +438,58 @@ class LLMBasedEvidenceStrategy(BaseMetric):
             clean_content = match.group(0) if match else response_content
             result_json = json.loads(clean_content)
             spans_result = result_json.get("spans", [])
-
             total_count = len(spans_result)
 
             for span in spans_result:
-                if span.get("supported", False):
+                reason_text = span.get("reason", "").lower()
+                raw = span.get("supported", False)
+
+                if isinstance(raw, bool):
+                    is_supported = raw
+                elif isinstance(raw, (int, float)):
+                    is_supported = bool(raw)
+                elif isinstance(raw, str):
+                    v = raw.strip().lower()
+                    is_supported = v in {"true", "1", "yes"}
+                else:
+                    is_supported = False
+
+                # correction for hallucinated labels
+                negative_signals = [
+                    "not supported",
+                    "not directly supported",
+                    "unsupported",
+                    "insufficient evidence",
+                    "not found",
+                    "does not match",
+                    "incorrect",
+                ]
+
+                reason_implies_false = any(x in reason_text for x in negative_signals)
+
+                if reason_implies_false and is_supported:
+                    logger.warning(
+                        "LLM inconsistency detected in span labeling. Overriding to unsupported based on reasoning."
+                    )
+                    is_supported = False
+
+                if is_supported == True:
                     supported += 1
                 else:
-                    unsupported_spans.append(span.get("sentence", None))
+                    sentence_idx = span.get("index", None)
+                    if sentence_idx is not None:
+                        sentence_idx = int(sentence_idx)
+                        sentence = sent_tokenize(full_answer)[sentence_idx] if sentence_idx < len(sent_tokenize(full_answer)) else ""
+                    else:
+                        sentence = ""
+                    unsupported_spans.append(sentence)
 
         except Exception as e:
             failed_checks += 1
             fail_reason = f"Parse error: {e}"
 
         return SpanCheckResult(
+            reasoning=reason_text,
             supported_count=supported,
             unsupported_spans=unsupported_spans,
             failed_count=failed_checks,
@@ -473,9 +518,19 @@ class LLMBasedEvidenceStrategy(BaseMetric):
         **INSTRUCTIONS:**
         1. Understand the QUERY to grasp the intent.
         2. Read the FULL ANSWER to understand the context.
-        3. Break the ANSWER down sentence by sentence (if applicable).
-        4. In case of multiple sentences, for EACH sentence, determine if it is fully supported by the DOCUMENTS.
-        5. In case of single sentence or word answers, evaluate the entire answer as one span.
-        6. Return ONLY a JSON object matching this schema: 
-           {{"spans": [{{"sentence": "<exact_sentence_string>", "supported": true/false, "reason": "<brief_reason>"}}]}}
+        3. In case of multiple sentences, Break the ANSWER down sentence by sentence, for EACH sentence, determine if it is fully supported by the DOCUMENTS.
+        4. In case of single sentence or word answers, evaluate the entire answer as one span.
+        5. In case of stringified JSON answer, evalute the full JSON, and determine if the JSON as a whole is supported by the documents.
+        6. To be considered supported, Answer should correctly match and relevant to the supporting evidence in the documents, not just loosely related or approximations to the content in the documents.
+        7. In case of numbers in the answer, they should be directly supported by exact/derived numbers in the documents to be considered supported. Approximations or numbers that are close but not exact should not be considered supported.
+        8. If the answer is a numerical aggregation, sum, difference, multiplication, ratio, or other arithmetic derivation directly computable from values in the documents, internally calculate it step by step accurately and consider it supported IF the arithmetic is correct.
+        9. Return ONLY a valid JSON object (no surrounding text) matching this exact schema (use JSON booleans, NOT strings):
+           {{"spans": [{{"index": "<Index of the answer span/sentence>", "reason": "<brief reason>", "supported": true or false}}]}}
+        10. Ensure internal consistency: set "supported" to true IF AND ONLY IF the evidence in the DOCUMENTS fully supports the sentence. 
+            - If your reasoning indicates the sentence is not supported, set "supported": false.
+            - If uncertain, set "supported": false and explain why in "reason".
+        
+        **IMPORTANT:**
+        - The value of "supported" MUST strictly agree with the reasoning.
+        - If the reasoning says the claim is unsupported, inaccurate, approximate, inferred, or uncertain, then "supported" MUST be false.
         """
