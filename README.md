@@ -20,12 +20,12 @@ It also includes **visualizations** to help showcase why a model output was deem
 |------|------------|---------|
 | **Evidence Coverage** | Segment-level entailment check. The answer is tokenized into sentences and each sentence is verified against retrieved documents using an NLI (Natural Language Inference) approach. | Detects hallucinations. Ensures every claim is supported by the provided context. |
 | **Epistemic Consistency** | Measures semantic stability ($1 - \sigma$) across $k$ stochastic generations. Samples $k$ responses at high temperature and computes the mean cosine similarity against the original answer. | Detects model inconsistency. Hallucinated answers tend to vary significantly between runs. |
-| **Semantic Drift** | Sentence-level maximum similarity between the Answer/Query embedding and embeddings of sentences from the retrieved documents. The metric finds the single best-matching document sentence (batched sentence embeddings) and reports that similarity. | Detects topic drift and alignment with source documents; low scores indicate the answer diverges from the provided documents (possible hallucination). |
+| **Semantic Drift** | Sentence-level maximum similarity between the Answer/Query embedding and embeddings of sentences from the retrieved documents. Also returns the best-matching document sentence(s). | Detect topic drift and alignment with source documents; low scores indicate the answer diverges from the provided documents (possible hallucination). |
 | **Source Diversity** | Normalized count of distinct source_id references contributing to the answer, adjusted using an exponential decay penalty. | Measures reliance on a single source while rewarding synthesis across multiple independent sources, without excessively penalizing cases where a single document is sufficient.
 
 ### Online Metrics (For Real-time response generation)
 
-`Applicable only for LLMs which supports logprobs. Might not be a good metric in case LLM is not calibrated enough.`
+`Applicable only for LLMs which supports logprobs. Might not be a good metric in case LLM is not calibrated enough. Newer LLMs are confident enough in hallucinated responses also, might not be suitable for such cases.`
 
 | Metric | Definition | Purpose |
 |------|------------|---------|
