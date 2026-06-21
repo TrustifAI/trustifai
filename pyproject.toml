@@ -40,7 +40,7 @@ where = ["."]
 exclude = ["benchmarks*", "examples*"]
 
 [tool.setuptools.exclude-package-data]
-"*" = ["*.ipynb", ".ipynb_checkpoints", "*.json", ".csv"]
+"*" = ["*.ipynb", ".ipynb_checkpoints", "*.json", ".csv", "*.yaml", "*.yml"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
