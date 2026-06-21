@@ -309,6 +309,7 @@ Output: TrustScore Result + Visualization
 
 ## 🎯 Benchmarks
 - [Amnesty QA](benchmarks/amnesty_qa/benchmark_report.md)
+- [FactCHD](benchmarks/FactCHD/benchmark_report.md)
 
 ## TODO
 - [ ] Improve Tracing
