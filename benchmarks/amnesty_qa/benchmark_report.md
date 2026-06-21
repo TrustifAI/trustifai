@@ -1,6 +1,6 @@
 # TrustifAI Benchmark Report
 
-**Generated on:** 2026-04-26 12:44:22
+**Generated on:** 2026-06-21 17:59:51
 
 ## Dataset Details
 
@@ -17,9 +17,9 @@ The ground truth answers serve as a reliable baseline, while the LLM answers hel
 
 TrustifAI assigns a **trust score between 0 and 1** to each answer.
 
-- **High score** → Reliable Answer
-- **Moderate Score** → Acceptable answer (with caution)
-- **Low score** → Unreliable (Likely Hallucinated) Answer
+- **High score** → 🟩 Reliable Answer
+- **Moderate Score** → 🟨 Acceptable answer (with caution)
+- **Low score** → 🟥 Unreliable (Likely Hallucinated) Answer
 
 We evaluate TrustifAI on:
 1. **LLM-generated answers**
@@ -28,34 +28,16 @@ We evaluate TrustifAI on:
 **Expected behavior:** Ground-truth answers should consistently receive higher trust scores than LLM answers.
 
 
-## Hallucination Detection (Binary Classification)
-
-Labels are mapped as:
-- **Trustworthy (1)** → RELIABLE, ACCEPTABLE (WITH CAUTION)
-- **Untrustworthy (0)** → UNRELIABLE
-
-**Interpretation:**
-- ROC-AUC → separability between trustworthy vs untrustworthy answers
-- PR-AUC → robustness under class imbalance
-
-**Results:**
-```text
-ROC-AUC  : 1.000
-PR-AUC   : 1.000
-```
-
 ## Reliability Distribution Comparison
 
-If TrustifAI works correctly, then LLM-generated answers should receive trust scores that result in labels predominantly falling under ACCEPTABLE (WITH CAUTION) or RELIABLE categories, with the combined count of these positive labels being comparable with positive labels for Ground Truth.
+If TrustifAI works correctly, it should assign mostly **RELIABLE**/**ACCEPTABLE** labels to **Ground Truth**
 
 **Results:**
 
-```text
-Label         ACCEPTABLE (WITH CAUTION)  RELIABLE  UNRELIABLE
-Type                                                         
-Ground Truth                          0        19           1
-LLM                                   8        10           2
-```
+| Type         |   ACCEPTABLE (WITH CAUTION) |   RELIABLE |   UNRELIABLE |
+|:-------------|----------------------------:|-----------:|-------------:|
+| Ground Truth |                           0 |         19 |            1 |
+| LLM          |                           8 |         10 |            2 |
 
 ## Verdict
 
@@ -64,5 +46,3 @@ TrustifAI demonstrates **meaningful separation** between grounded and hallucinat
 - Effective hallucination detection
 - Reasonable score calibration
 - Practical usefulness in RAG evaluation pipelines
-
-[Benchmark Results CSV](benchmark_results.csv)

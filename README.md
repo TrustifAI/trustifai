@@ -312,4 +312,4 @@ Output: TrustScore Result + Visualization
 
 ## TODO
 - [ ] Improve Tracing
-- [ ] Support for GraphRAG
+- [x] Support for GraphRAG
